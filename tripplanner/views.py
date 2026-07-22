@@ -43,6 +43,7 @@ def create_trip_plan(request):
             for break_item in plan.required_rest_breaks
         ],
         'daily_logs': plan.daily_logs,
+        'eld_logs': plan.eld_logs,
         'warnings': plan.warnings,
         'cycle_status': plan.cycle_status,
     }, status=status.HTTP_200_OK)

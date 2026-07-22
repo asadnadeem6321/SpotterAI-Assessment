@@ -23,6 +23,7 @@ class TripPlan:
     remaining_cycle_hours: float
     required_rest_breaks: List[RestBreak]
     daily_logs: List[dict]
+    eld_logs: List[dict]
     warnings: List[str]
     cycle_status: str
 
@@ -62,17 +63,27 @@ class TripPlanningService:
             rest_breaks.append(RestBreak('Fuel stop', 0.25, f'Fueling required at least {refuel_count} times'))
 
         daily_logs = []
+        eld_logs = []
         remaining_drive = drive_hours
         day_number = 1
         while remaining_drive > 0:
             day_drive_hours = min(remaining_drive, self.MAX_DAILY_DRIVE_HOURS)
             day_on_duty_hours = min(day_drive_hours + self.PICKUP_DROPOFF_BUFFER_HOURS, self.MAX_DAILY_ON_DUTY_HOURS)
-            daily_logs.append({
+            daily_entry = {
                 'day': day_number,
                 'drive_hours': round(day_drive_hours, 2),
                 'on_duty_hours': round(day_on_duty_hours, 2),
                 'rest_required': day_drive_hours >= self.MAX_DAILY_DRIVE_HOURS,
                 'cycle_hours_used': round(min(current_cycle_used + day_drive_hours, self.MAX_CYCLE_HOURS), 2),
+            }
+            daily_logs.append(daily_entry)
+            eld_logs.append({
+                'day': day_number,
+                'driving_hours': round(day_drive_hours, 2),
+                'on_duty_hours': round(day_on_duty_hours, 2),
+                'off_duty_hours': round(max(0, 24 - day_on_duty_hours), 2),
+                'status': 'Rest Required' if day_drive_hours >= self.MAX_DAILY_DRIVE_HOURS else 'Driving',
+                'remarks': 'Fueling stop recommended' if day_number > 1 else 'Ready for dispatch',
             })
             remaining_drive -= day_drive_hours
             day_number += 1
@@ -94,6 +105,7 @@ class TripPlanningService:
             remaining_cycle_hours=round(remaining_cycle, 2),
             required_rest_breaks=rest_breaks,
             daily_logs=daily_logs,
+            eld_logs=eld_logs,
             warnings=warnings,
             cycle_status=cycle_status,
         )

@@ -36,6 +36,20 @@ class TripPlanningServiceTests(SimpleTestCase):
 
         self.assertGreaterEqual(len(plan.daily_logs), 2)
 
+    def test_build_trip_plan_includes_eld_log_entries(self):
+        payload = {
+            'current_location': 'Chicago',
+            'pickup_location': 'Detroit',
+            'dropoff_location': 'Cleveland',
+            'current_cycle_used_hours': 20,
+        }
+
+        plan = self.service.build_trip_plan(payload)
+
+        self.assertEqual(len(plan.eld_logs), len(plan.daily_logs))
+        self.assertIn('driving_hours', plan.eld_logs[0])
+        self.assertIn('status', plan.eld_logs[0])
+
     def test_api_returns_validation_error_for_missing_fields(self):
         client = APIClient()
         response = client.post('/api/trip-plan/', {}, format='json')
