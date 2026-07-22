@@ -24,6 +24,7 @@ class TripPlan:
     required_rest_breaks: List[RestBreak]
     daily_logs: List[dict]
     warnings: List[str]
+    cycle_status: str
 
 
 class TripPlanningService:
@@ -33,6 +34,8 @@ class TripPlanningService:
     REFUEL_INTERVAL_MILES = 1000
     PICKUP_DROPOFF_BUFFER_HOURS = 1
     AVERAGE_SPEED_MPH = 55
+    REQUIRED_REST_HOURS = 10 / 60
+    REQUIRED_OFF_DUTY_HOURS = 8 / 60
 
     def build_trip_plan(self, data: dict) -> TripPlan:
         current_cycle_used = float(data['current_cycle_used_hours'])
@@ -46,12 +49,13 @@ class TripPlanningService:
 
         if current_cycle_used >= self.MAX_CYCLE_HOURS:
             warnings.append('Current cycle already exceeds the maximum allowed hours.')
+        if current_cycle_used + drive_hours > self.MAX_CYCLE_HOURS:
+            warnings.append('This trip would exceed the remaining cycle hours.')
 
         if drive_hours > self.MAX_DAILY_DRIVE_HOURS:
-            rest_breaks.append(RestBreak('Required rest', 10.0 / 60.0, 'Daily driving limit exceeded'))
-
+            rest_breaks.append(RestBreak('Required rest', self.REQUIRED_REST_HOURS, 'Daily driving limit exceeded'))
         if on_duty_hours > self.MAX_DAILY_ON_DUTY_HOURS:
-            rest_breaks.append(RestBreak('Extended duty break', 8.0 / 60.0, 'Daily on-duty limit exceeded'))
+            rest_breaks.append(RestBreak('Extended duty break', self.REQUIRED_OFF_DUTY_HOURS, 'Daily on-duty limit exceeded'))
 
         refuel_count = max(1, int(total_distance // self.REFUEL_INTERVAL_MILES))
         if refuel_count > 1:
@@ -62,14 +66,22 @@ class TripPlanningService:
         day_number = 1
         while remaining_drive > 0:
             day_drive_hours = min(remaining_drive, self.MAX_DAILY_DRIVE_HOURS)
+            day_on_duty_hours = min(day_drive_hours + self.PICKUP_DROPOFF_BUFFER_HOURS, self.MAX_DAILY_ON_DUTY_HOURS)
             daily_logs.append({
                 'day': day_number,
                 'drive_hours': round(day_drive_hours, 2),
-                'on_duty_hours': round(min(day_drive_hours + self.PICKUP_DROPOFF_BUFFER_HOURS, self.MAX_DAILY_ON_DUTY_HOURS), 2),
+                'on_duty_hours': round(day_on_duty_hours, 2),
                 'rest_required': day_drive_hours >= self.MAX_DAILY_DRIVE_HOURS,
+                'cycle_hours_used': round(min(current_cycle_used + day_drive_hours, self.MAX_CYCLE_HOURS), 2),
             })
             remaining_drive -= day_drive_hours
             day_number += 1
+
+        cycle_status = 'within-cycle'
+        if remaining_cycle <= 0:
+            cycle_status = 'exceeded'
+        elif current_cycle_used + drive_hours > self.MAX_CYCLE_HOURS * 0.85:
+            cycle_status = 'near-limit'
 
         return TripPlan(
             current_location=data['current_location'],
@@ -83,12 +95,31 @@ class TripPlanningService:
             required_rest_breaks=rest_breaks,
             daily_logs=daily_logs,
             warnings=warnings,
+            cycle_status=cycle_status,
         )
 
     def _estimate_distance_miles(self, current_location: str, pickup_location: str, dropoff_location: str) -> float:
-        base_distance = 350.0
-        if current_location.lower() == pickup_location.lower():
-            base_distance += 20.0
-        if pickup_location.lower() == dropoff_location.lower():
-            base_distance += 10.0
-        return base_distance
+        city_map = {
+            'chicago': {'detroit': 280, 'cleveland': 345, 'denver': 1000, 'phoenix': 1500},
+            'detroit': {'chicago': 280, 'cleveland': 170, 'denver': 1100, 'phoenix': 1600},
+            'cleveland': {'chicago': 345, 'detroit': 170, 'denver': 1200, 'phoenix': 1550},
+            'denver': {'chicago': 1000, 'phoenix': 600, 'lasvegas': 450},
+            'phoenix': {'denver': 600, 'lasvegas': 300, 'chicago': 1500},
+            'lasvegas': {'phoenix': 300, 'denver': 450},
+        }
+
+        total_distance = 0.0
+        segments = [
+            (current_location, pickup_location),
+            (pickup_location, dropoff_location),
+        ]
+
+        for origin, destination in segments:
+            origin_key = origin.lower()
+            destination_key = destination.lower()
+            if origin_key in city_map and destination_key in city_map[origin_key]:
+                total_distance += city_map[origin_key][destination_key]
+            else:
+                total_distance += 350.0
+
+        return round(total_distance, 2)
