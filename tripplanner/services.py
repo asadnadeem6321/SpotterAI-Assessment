@@ -24,6 +24,7 @@ class TripPlan:
     required_rest_breaks: List[RestBreak]
     daily_logs: List[dict]
     eld_logs: List[dict]
+    route_summary: List[dict]
     warnings: List[str]
     cycle_status: str
 
@@ -94,6 +95,12 @@ class TripPlanningService:
         elif current_cycle_used + drive_hours > self.MAX_CYCLE_HOURS * 0.85:
             cycle_status = 'near-limit'
 
+        route_summary = [
+            {'step': 1, 'location': data['current_location'], 'type': 'Start'},
+            {'step': 2, 'location': data['pickup_location'], 'type': 'Pickup'},
+            {'step': 3, 'location': data['dropoff_location'], 'type': 'Dropoff'},
+        ]
+
         return TripPlan(
             current_location=data['current_location'],
             pickup_location=data['pickup_location'],
@@ -106,6 +113,7 @@ class TripPlanningService:
             required_rest_breaks=rest_breaks,
             daily_logs=daily_logs,
             eld_logs=eld_logs,
+            route_summary=route_summary,
             warnings=warnings,
             cycle_status=cycle_status,
         )
