@@ -8,6 +8,29 @@ const initialForm = {
   current_cycle_used_hours: '20',
 }
 
+const presetRoutes = [
+  {
+    id: 'midwest',
+    label: 'Midwest run',
+    values: {
+      current_location: 'Chicago',
+      pickup_location: 'Detroit',
+      dropoff_location: 'Cleveland',
+      current_cycle_used_hours: '20',
+    },
+  },
+  {
+    id: 'mountain',
+    label: 'Mountain haul',
+    values: {
+      current_location: 'Chicago',
+      pickup_location: 'Denver',
+      dropoff_location: 'Phoenix',
+      current_cycle_used_hours: '8',
+    },
+  },
+]
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function App() {
@@ -117,6 +140,19 @@ function App() {
             <div className="panel-title-row">
               <h2>Trip inputs</h2>
               <span className="subtle-pill">Live API</span>
+            </div>
+
+            <div className="preset-row">
+              {presetRoutes.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="preset-btn"
+                  onClick={() => setForm({ ...form, ...preset.values })}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
 
             <form className="trip-form" onSubmit={handleSubmit}>
@@ -245,11 +281,11 @@ function App() {
             <div className="results-grid">
               <article className="result-card">
                 <h2>Route overview</h2>
-                <div className="route-list">
-                  {plan.route_summary.map((step) => (
-                    <div key={`${step.step}-${step.location}`} className="route-step">
-                      <div className="step-badge">{step.step}</div>
-                      <div>
+                <div className="route-visual">
+                  {plan.route_summary.map((step, index) => (
+                    <div key={`${step.step}-${step.location}`} className="route-node">
+                      <div className="route-node-marker">{index + 1}</div>
+                      <div className="route-node-body">
                         <strong>{step.type}</strong>
                         <h3>{step.location}</h3>
                         <p>{step.instruction}</p>
