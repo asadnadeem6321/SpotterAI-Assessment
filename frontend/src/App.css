@@ -90,6 +90,12 @@
   margin-bottom: 1rem;
 }
 
+.empty-state {
+  color: #475569;
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

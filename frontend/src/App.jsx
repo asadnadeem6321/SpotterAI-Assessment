@@ -14,6 +14,7 @@ function App() {
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [validationMessage, setValidationMessage] = useState('')
 
   useEffect(() => {
     fetch('/api/health/')
@@ -26,14 +27,37 @@ function App() {
     event.preventDefault()
     setLoading(true)
     setError('')
+    setValidationMessage('')
+
+    const trimmedForm = {
+      ...form,
+      current_location: form.current_location.trim(),
+      pickup_location: form.pickup_location.trim(),
+      dropoff_location: form.dropoff_location.trim(),
+    }
+
+    if (!trimmedForm.current_location || !trimmedForm.pickup_location || !trimmedForm.dropoff_location) {
+      setValidationMessage('Please fill in all location fields before generating a plan.')
+      setLoading(false)
+      return
+    }
+
+    const cycleValue = Number(trimmedForm.current_cycle_used_hours)
+    if (Number.isNaN(cycleValue) || cycleValue < 0 || cycleValue > 70) {
+      setValidationMessage('Cycle hours must be a number between 0 and 70.')
+      setLoading(false)
+      return
+    }
+
+    setForm({ ...form, ...trimmedForm, current_cycle_used_hours: String(cycleValue) })
 
     try {
       const response = await fetch('/api/trip-plan/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          current_cycle_used_hours: Number(form.current_cycle_used_hours),
+          ...trimmedForm,
+          current_cycle_used_hours: cycleValue,
         }),
       })
 
@@ -103,7 +127,12 @@ function App() {
           </button>
         </form>
 
+        {validationMessage && <p className="error-text">{validationMessage}</p>}
         {error && <p className="error-text">{error}</p>}
+
+        {!plan && !loading && !error && !validationMessage && (
+          <p className="empty-state">Submit trip details to generate a planning summary and ELD logs.</p>
+        )}
 
         {plan && (
           <section className="plan-results">
