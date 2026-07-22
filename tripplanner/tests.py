@@ -84,3 +84,27 @@ class TripPlanningServiceTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('current_location', response.json())
+
+    def test_api_rejects_blank_location_values(self):
+        client = APIClient()
+        response = client.post('/api/trip-plan/', {
+            'current_location': '   ',
+            'pickup_location': 'Detroit',
+            'dropoff_location': 'Cleveland',
+            'current_cycle_used_hours': 20,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('current_location', response.json())
+
+    def test_api_rejects_out_of_range_cycle_hours(self):
+        client = APIClient()
+        response = client.post('/api/trip-plan/', {
+            'current_location': 'Chicago',
+            'pickup_location': 'Detroit',
+            'dropoff_location': 'Cleveland',
+            'current_cycle_used_hours': 71,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('current_cycle_used_hours', response.json())
