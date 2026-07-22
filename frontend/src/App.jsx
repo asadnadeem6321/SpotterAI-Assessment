@@ -128,6 +128,18 @@ function App() {
               </article>
             </div>
 
+            <div className="route-section">
+              <h2>Route overview</h2>
+              <div className="route-list">
+                {plan.route_summary.map((step) => (
+                  <div key={`${step.step}-${step.location}`} className="route-pill">
+                    <strong>{step.type}</strong>
+                    <span>{step.location}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="log-list">
               <h2>ELD daily logs</h2>
               {plan.eld_logs.map((entry) => (
