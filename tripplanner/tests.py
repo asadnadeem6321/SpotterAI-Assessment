@@ -1,3 +1,31 @@
-from django.test import TestCase
+from django.test import SimpleTestCase
+from rest_framework.test import APIClient
 
-# Create your tests here.
+from .services import TripPlanningService
+
+
+class TripPlanningServiceTests(SimpleTestCase):
+    def setUp(self):
+        self.service = TripPlanningService()
+
+    def test_build_trip_plan_returns_expected_structure(self):
+        payload = {
+            'current_location': 'Chicago',
+            'pickup_location': 'Detroit',
+            'dropoff_location': 'Cleveland',
+            'current_cycle_used_hours': 20,
+        }
+
+        plan = self.service.build_trip_plan(payload)
+
+        self.assertEqual(plan.current_location, 'Chicago')
+        self.assertGreater(plan.total_distance_miles, 0)
+        self.assertGreater(plan.total_drive_hours, 0)
+        self.assertEqual(len(plan.daily_logs), 1)
+
+    def test_api_returns_validation_error_for_missing_fields(self):
+        client = APIClient()
+        response = client.post('/api/trip-plan/', {}, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('current_location', response.json())
