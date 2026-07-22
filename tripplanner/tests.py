@@ -64,6 +64,20 @@ class TripPlanningServiceTests(SimpleTestCase):
         self.assertEqual(plan.route_summary[1]['type'], 'Pickup')
         self.assertEqual(plan.route_summary[2]['type'], 'Dropoff')
 
+    def test_route_summary_includes_step_instructions(self):
+        payload = {
+            'current_location': 'Chicago',
+            'pickup_location': 'Detroit',
+            'dropoff_location': 'Cleveland',
+            'current_cycle_used_hours': 20,
+        }
+
+        plan = self.service.build_trip_plan(payload)
+
+        self.assertIn('instruction', plan.route_summary[0])
+        self.assertIn('distance_miles', plan.route_summary[0])
+        self.assertIn('estimated_duration_hours', plan.route_summary[0])
+
     def test_api_returns_validation_error_for_missing_fields(self):
         client = APIClient()
         response = client.post('/api/trip-plan/', {}, format='json')

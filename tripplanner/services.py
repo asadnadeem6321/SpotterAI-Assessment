@@ -96,9 +96,30 @@ class TripPlanningService:
             cycle_status = 'near-limit'
 
         route_summary = [
-            {'step': 1, 'location': data['current_location'], 'type': 'Start'},
-            {'step': 2, 'location': data['pickup_location'], 'type': 'Pickup'},
-            {'step': 3, 'location': data['dropoff_location'], 'type': 'Dropoff'},
+            {
+                'step': 1,
+                'location': data['current_location'],
+                'type': 'Start',
+                'instruction': 'Depart from the current location and prepare for pickup.',
+                'distance_miles': round(total_distance * 0.2, 2),
+                'estimated_duration_hours': round(drive_hours * 0.2, 2),
+            },
+            {
+                'step': 2,
+                'location': data['pickup_location'],
+                'type': 'Pickup',
+                'instruction': 'Complete the pickup handoff and verify the load before continuing.',
+                'distance_miles': round(total_distance * 0.4, 2),
+                'estimated_duration_hours': round(drive_hours * 0.4, 2),
+            },
+            {
+                'step': 3,
+                'location': data['dropoff_location'],
+                'type': 'Dropoff',
+                'instruction': 'Deliver the shipment and finalize the route.',
+                'distance_miles': round(total_distance * 0.4, 2),
+                'estimated_duration_hours': round(drive_hours * 0.4, 2),
+            },
         ]
 
         return TripPlan(
