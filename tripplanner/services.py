@@ -25,12 +25,14 @@ class TripPlan:
     daily_logs: List[dict]
     eld_logs: List[dict]
     route_summary: List[dict]
+    route_map: dict
     warnings: List[str]
     cycle_status: str
 
 
 class TripPlanningService:
     MAX_CYCLE_HOURS = 70
+    CYCLE_WINDOW_DAYS = 8
     MAX_DAILY_DRIVE_HOURS = 11
     MAX_DAILY_ON_DUTY_HOURS = 14
     REFUEL_INTERVAL_MILES = 1000
@@ -38,6 +40,14 @@ class TripPlanningService:
     AVERAGE_SPEED_MPH = 55
     REQUIRED_REST_HOURS = 10 / 60
     REQUIRED_OFF_DUTY_HOURS = 8 / 60
+    CITY_COORDINATES = {
+        'chicago': {'lat': 41.8781, 'lng': -87.6298},
+        'detroit': {'lat': 42.3314, 'lng': -83.0458},
+        'cleveland': {'lat': 41.4993, 'lng': -81.6944},
+        'denver': {'lat': 39.7392, 'lng': -104.9903},
+        'phoenix': {'lat': 33.4484, 'lng': -112.0740},
+        'lasvegas': {'lat': 36.1699, 'lng': -115.1398},
+    }
 
     def build_trip_plan(self, data: dict) -> TripPlan:
         current_cycle_used = float(data['current_cycle_used_hours'])
@@ -66,16 +76,20 @@ class TripPlanningService:
         daily_logs = []
         eld_logs = []
         remaining_drive = drive_hours
+        remaining_cycle_after_day = current_cycle_used
         day_number = 1
         while remaining_drive > 0:
             day_drive_hours = min(remaining_drive, self.MAX_DAILY_DRIVE_HOURS)
             day_on_duty_hours = min(day_drive_hours + self.PICKUP_DROPOFF_BUFFER_HOURS, self.MAX_DAILY_ON_DUTY_HOURS)
+            remaining_cycle_after_day = min(self.MAX_CYCLE_HOURS, remaining_cycle_after_day + day_drive_hours)
             daily_entry = {
                 'day': day_number,
                 'drive_hours': round(day_drive_hours, 2),
                 'on_duty_hours': round(day_on_duty_hours, 2),
                 'rest_required': day_drive_hours >= self.MAX_DAILY_DRIVE_HOURS,
-                'cycle_hours_used': round(min(current_cycle_used + day_drive_hours, self.MAX_CYCLE_HOURS), 2),
+                'cycle_hours_used': round(remaining_cycle_after_day, 2),
+                'cycle_window_days': self.CYCLE_WINDOW_DAYS,
+                'rolling_cycle_days_remaining': max(0, self.CYCLE_WINDOW_DAYS - day_number),
             }
             daily_logs.append(daily_entry)
             eld_logs.append({
@@ -85,6 +99,7 @@ class TripPlanningService:
                 'off_duty_hours': round(max(0, 24 - day_on_duty_hours), 2),
                 'status': 'Rest Required' if day_drive_hours >= self.MAX_DAILY_DRIVE_HOURS else 'Driving',
                 'remarks': 'Fueling stop recommended' if day_number > 1 else 'Ready for dispatch',
+                'cycle_window_days': self.CYCLE_WINDOW_DAYS,
             })
             remaining_drive -= day_drive_hours
             day_number += 1
@@ -122,6 +137,32 @@ class TripPlanningService:
             },
         ]
 
+        route_map = {
+            'center': self._get_coordinates(data['pickup_location']),
+            'points': [
+                {
+                    'label': 'Start',
+                    'location': data['current_location'],
+                    **self._get_coordinates(data['current_location']),
+                },
+                {
+                    'label': 'Pickup',
+                    'location': data['pickup_location'],
+                    **self._get_coordinates(data['pickup_location']),
+                },
+                {
+                    'label': 'Dropoff',
+                    'location': data['dropoff_location'],
+                    **self._get_coordinates(data['dropoff_location']),
+                },
+            ],
+            'path': [
+                self._get_coordinates(data['current_location']),
+                self._get_coordinates(data['pickup_location']),
+                self._get_coordinates(data['dropoff_location']),
+            ],
+        }
+
         return TripPlan(
             current_location=data['current_location'],
             pickup_location=data['pickup_location'],
@@ -135,6 +176,7 @@ class TripPlanningService:
             daily_logs=daily_logs,
             eld_logs=eld_logs,
             route_summary=route_summary,
+            route_map=route_map,
             warnings=warnings,
             cycle_status=cycle_status,
         )
@@ -164,3 +206,13 @@ class TripPlanningService:
                 total_distance += 350.0
 
         return round(total_distance, 2)
+
+    def _get_coordinates(self, location: str) -> dict:
+        coordinates = self.CITY_COORDINATES.get(location.lower())
+        if coordinates:
+            return coordinates
+
+        fallback = sum(ord(char) for char in location.lower())
+        lat = 30 + (fallback % 1200) / 100
+        lng = -120 + (fallback % 1500) / 100
+        return {'lat': round(lat, 4), 'lng': round(lng, 4)}

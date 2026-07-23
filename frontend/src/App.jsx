@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { CircleMarker, MapContainer, Polyline, Popup, TileLayer } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import './App.css'
 
 const initialForm = {
@@ -41,6 +43,8 @@ function App() {
   const [error, setError] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
 
+  const routeMap = plan?.route_map
+
   useEffect(() => {
     const checkHealth = async () => {
       try {
@@ -54,6 +58,18 @@ function App() {
 
     checkHealth()
   }, [])
+
+  const buildLogSegments = (entry) => {
+    const drivingWidth = Math.max(0, Math.min(100, (entry.driving_hours / 24) * 100))
+    const onDutyWidth = Math.max(0, Math.min(100, (entry.on_duty_hours / 24) * 100))
+    const offDutyWidth = Math.max(0, 100 - onDutyWidth)
+
+    return [
+      { label: 'Driving', width: drivingWidth, className: 'segment-driving' },
+      { label: 'On-duty', width: onDutyWidth - drivingWidth, className: 'segment-duty' },
+      { label: 'Off-duty', width: offDutyWidth, className: 'segment-rest' },
+    ].filter((segment) => segment.width > 0.2)
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -126,7 +142,7 @@ function App() {
             <h1>Design safer trips and ELD-ready daily logs in minutes.</h1>
             <p className="hero-copy">
               Submit a route, and the backend will return a practical plan with rest recommendations,
-              cycle insights, and step-by-step route guidance.
+              cycle insights, map guidance, and step-by-step route instructions.
             </p>
           </div>
           <div className={`status-pill ${health?.status === 'ok' ? 'online' : 'offline'}`}>
@@ -203,6 +219,7 @@ function App() {
               <li>Daily drive/on-duty thresholds</li>
               <li>Rest-break recommendations and fueling stops</li>
               <li>ELD-style daily logs with route guidance</li>
+              <li>Map coordinates and route path visuals</li>
             </ul>
             <div className="status-box">
               <h3>Backend status</h3>
@@ -251,6 +268,10 @@ function App() {
                     <span>Remaining cycle</span>
                     <strong>{plan.remaining_cycle_hours} hrs</strong>
                   </div>
+                  <div className="metric-pill">
+                    <span>Cycle window</span>
+                    <strong>8 days</strong>
+                  </div>
                 </div>
                 {plan.warnings.length > 0 && (
                   <div className="warning-list">
@@ -280,7 +301,55 @@ function App() {
 
             <div className="results-grid">
               <article className="result-card">
-                <h2>Route overview</h2>
+                <h2>Route map</h2>
+                {routeMap ? (
+                  <div className="map-card">
+                    <MapContainer
+                      center={[routeMap.center.lat, routeMap.center.lng]}
+                      zoom={5}
+                      scrollWheelZoom={false}
+                      className="trip-map"
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <Polyline
+                        positions={routeMap.path.map((point) => [point.lat, point.lng])}
+                        pathOptions={{ color: '#2563eb', weight: 4 }}
+                      />
+                      {routeMap.points.map((point) => (
+                        <CircleMarker
+                          key={`${point.label}-${point.location}`}
+                          center={[point.lat, point.lng]}
+                          radius={9}
+                          pathOptions={{ color: '#1d4ed8', fillColor: '#60a5fa', fillOpacity: 0.95 }}
+                        >
+                          <Popup>
+                            <strong>{point.label}</strong>
+                            <br />
+                            {point.location}
+                          </Popup>
+                        </CircleMarker>
+                      ))}
+                    </MapContainer>
+                    <div className="map-legend">
+                      {routeMap.points.map((point) => (
+                        <div key={`${point.label}-${point.location}`} className="legend-item">
+                          <span className="legend-dot" />
+                          <div>
+                            <strong>{point.label}</strong>
+                            <p>{point.location}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+
+              <article className="result-card">
+                <h2>Route instructions</h2>
                 <div className="route-visual">
                   {plan.route_summary.map((step, index) => (
                     <div key={`${step.step}-${step.location}`} className="route-node">
@@ -305,9 +374,32 @@ function App() {
                         <h3>Day {entry.day}</h3>
                         <span className="subtle-pill">{entry.status}</span>
                       </div>
-                      <p>Driving: {entry.driving_hours} hrs</p>
-                      <p>On-duty: {entry.on_duty_hours} hrs</p>
-                      <p>Off-duty: {entry.off_duty_hours} hrs</p>
+                      <div className="log-sheet">
+                        <div className="log-scale">
+                          <span>0</span>
+                          <span>6</span>
+                          <span>12</span>
+                          <span>18</span>
+                          <span>24</span>
+                        </div>
+                        <div className="log-bar">
+                          {buildLogSegments(entry).map((segment) => (
+                            <div
+                              key={segment.label}
+                              className={`log-segment ${segment.className}`}
+                              style={{ width: `${segment.width}%` }}
+                            >
+                              <span>{segment.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="log-metrics">
+                        <p>Driving: {entry.driving_hours} hrs</p>
+                        <p>On-duty: {entry.on_duty_hours} hrs</p>
+                        <p>Off-duty: {entry.off_duty_hours} hrs</p>
+                        <p>Cycle window: {entry.cycle_window_days} days</p>
+                      </div>
                       <p>Remarks: {entry.remarks}</p>
                     </article>
                   ))}

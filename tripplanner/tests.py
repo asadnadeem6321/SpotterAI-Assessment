@@ -78,6 +78,33 @@ class TripPlanningServiceTests(SimpleTestCase):
         self.assertIn('distance_miles', plan.route_summary[0])
         self.assertIn('estimated_duration_hours', plan.route_summary[0])
 
+    def test_build_trip_plan_includes_route_map(self):
+        payload = {
+            'current_location': 'Chicago',
+            'pickup_location': 'Detroit',
+            'dropoff_location': 'Cleveland',
+            'current_cycle_used_hours': 20,
+        }
+
+        plan = self.service.build_trip_plan(payload)
+
+        self.assertIn('center', plan.route_map)
+        self.assertIn('points', plan.route_map)
+        self.assertEqual(len(plan.route_map['points']), 3)
+
+    def test_daily_logs_include_rolling_cycle_metadata(self):
+        payload = {
+            'current_location': 'Chicago',
+            'pickup_location': 'Denver',
+            'dropoff_location': 'Phoenix',
+            'current_cycle_used_hours': 8,
+        }
+
+        plan = self.service.build_trip_plan(payload)
+
+        self.assertEqual(plan.daily_logs[0]['cycle_window_days'], 8)
+        self.assertIn('rolling_cycle_days_remaining', plan.daily_logs[0])
+
     def test_api_returns_validation_error_for_missing_fields(self):
         client = APIClient()
         response = client.post('/api/trip-plan/', {}, format='json')

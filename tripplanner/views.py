@@ -45,6 +45,7 @@ def create_trip_plan(request):
         'daily_logs': plan.daily_logs,
         'eld_logs': plan.eld_logs,
         'route_summary': plan.route_summary,
+        'route_map': plan.route_map,
         'warnings': plan.warnings,
         'cycle_status': plan.cycle_status,
     }, status=status.HTTP_200_OK)
