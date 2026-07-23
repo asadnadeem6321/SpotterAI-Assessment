@@ -11,7 +11,10 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top left, #173b62 0%, #071b2f 45%, #030917 100%);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.30) 0%, transparent 30%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.22) 0%, transparent 35%),
+    linear-gradient(135deg, #071b2f 0%, #0f2742 45%, #030917 100%);
 }
 
 button,
@@ -27,13 +30,13 @@ input {
 }
 
 .hero-card {
-  width: min(1120px, 100%);
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 28px;
+  width: min(1180px, 100%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.97) 0%, rgba(248,250,252,0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 32px;
   padding: 2rem;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 90px rgba(2, 8, 23, 0.32);
+  backdrop-filter: blur(20px);
 }
 
 .hero-top {
@@ -70,10 +73,11 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.8rem 1rem;
   border-radius: 999px;
   font-weight: 700;
   white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
 }
 
 .status-pill.online {
@@ -104,9 +108,10 @@ h1 {
 .result-card,
 .empty-state-card {
   border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 1.2rem;
+  border-radius: 22px;
+  padding: 1.25rem;
   background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .panel-title-row {
@@ -142,12 +147,18 @@ h1 {
 
 .preset-btn {
   border: 1px solid #bfdbfe;
-  background: #eff6ff;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   color: #1d4ed8;
-  padding: 0.55rem 0.8rem;
+  padding: 0.6rem 0.9rem;
   border-radius: 999px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.preset-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.15);
 }
 
 .trip-form {
@@ -165,23 +176,30 @@ h1 {
 }
 
 .trip-form input {
-  padding: 0.78rem 0.9rem;
+  padding: 0.8rem 0.95rem;
   border-radius: 12px;
   border: 1px solid #cbd5e1;
   font-size: 1rem;
   background: white;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.trip-form input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.16);
 }
 
 .trip-form button {
   grid-column: span 2;
-  padding: 0.9rem 1rem;
+  padding: 0.95rem 1rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
   color: white;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
 }
 
 .trip-form button:disabled {
@@ -253,9 +271,9 @@ h1 {
 }
 
 .metric-pill {
-  padding: 0.8rem;
+  padding: 0.85rem;
   border-radius: 14px;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid #e2e8f0;
 }
 
@@ -334,9 +352,9 @@ h1 {
 .route-node {
   display: flex;
   gap: 0.75rem;
-  padding: 0.9rem;
-  border-radius: 14px;
-  background: #f8fafc;
+  padding: 0.95rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
   border: 1px solid #e2e8f0;
 }
 
@@ -362,9 +380,9 @@ h1 {
 }
 
 .log-card {
-  border-radius: 14px;
-  padding: 0.8rem;
-  background: #f8fafc;
+  border-radius: 16px;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
   border: 1px solid #e2e8f0;
 }
 
